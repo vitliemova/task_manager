@@ -4,6 +4,8 @@ import json
 import uuid
 import os
 
+print("Pipeline test: code updated")
+
 app = Flask(__name__)
 
 # Environment variables are a key DevOps concept for Session 4
