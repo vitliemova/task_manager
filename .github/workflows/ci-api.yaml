@@ -130,13 +130,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate CHANGELOG
-        uses: orhun/git-cliff-action@v2
-        with:
-          container: alpine:3.19
-          config: cliff.toml
-          args: --output CHANGELOG.md
+      - name: Install git-cliff
+        run: |
+          curl -s https://raw.githubusercontent.com/orhun/git-cliff/main/install.sh | bash
 
+      - name: Generate CHANGELOG
+        run: git-cliff -c cliff.toml -o CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit updated CHANGELOG
         run: |
@@ -145,3 +146,4 @@ jobs:
           git add CHANGELOG.md
           git commit -m "docs: update changelog [skip ci]" || echo "No changes"
           git push
+
