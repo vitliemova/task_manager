@@ -4,8 +4,8 @@ env:
 
 name: Task Manager API Image
 permissions: 
-contents: read
-packages: write
+  contents: read
+  packages: write
 
 run-name: ${{ github.actor }} is building the API image
 on:
