@@ -1,7 +1,7 @@
 name: Task Manager API Image
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
@@ -13,10 +13,16 @@ on:
     branches: [main]
     paths:
       - 'services/api/**'
+  release:
+    types: [created]
   workflow_dispatch:
 
 jobs:
+  # ---------------------------------------------------------
+  # 1) ALWAYS RUN TESTS ON EVERY COMMIT
+  # ---------------------------------------------------------
   test-logic:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,8 +43,37 @@ jobs:
           cd services/api
           python3 -m pytest tests/test_app.py
 
+  # ---------------------------------------------------------
+  # 2) VERSION BUMP ONLY WHEN YOU CREATE A RELEASE
+  # ---------------------------------------------------------
+  bump-version:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Auto bump version (SemVer)
+        id: tag
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+
+      - name: Show new version
+        run: echo "New version is ${{ steps.tag.outputs.new_tag }}"
+
+  # ---------------------------------------------------------
+  # 3) BUILD IMAGE ONLY ON RELEASE
+  # ---------------------------------------------------------
   build-images:
-    needs: test-logic
+    if: github.event_name == 'release'
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -54,13 +89,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata (SemVer tags)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_IMAGE_NAME }}
           tags: |
-            type=sha,enable=true,priority=100,prefix=,suffix=,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
         env:
           DOCKER_METADATA_SHORT_SHA_LENGTH: 10
@@ -79,3 +117,31 @@ jobs:
             ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  # ---------------------------------------------------------
+  # 4) RELEASE NOTES + CHANGELOG ONLY ON RELEASE
+  # ---------------------------------------------------------
+  changelog:
+    if: github.event_name == 'release'
+    needs: build-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate CHANGELOG
+        uses: orhun/git-cliff-action@v2
+        with:
+          config: cliff.toml
+          args: --output CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit updated CHANGELOG
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update changelog [skip ci]" || echo "No changes"
+          git push
