@@ -133,15 +133,15 @@ jobs:
       - name: Generate CHANGELOG
         uses: orhun/git-cliff-action@v2
         with:
+          container: alpine:3.19
           config: cliff.toml
           args: --output CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Commit updated CHANGELOG
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "vitliemova"
+          git config user.email "vitliemova@gmail.com"
           git add CHANGELOG.md
           git commit -m "docs: update changelog [skip ci]" || echo "No changes"
           git push
