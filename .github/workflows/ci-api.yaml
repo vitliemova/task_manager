@@ -1,19 +1,18 @@
+name: Task Manager API Image
+
+permissions:
+  contents: read
+  packages: write
+
 env:
   DOCKER_REGISTRY_URL: ghcr.io/${{ github.repository_owner }}
   DOCKER_IMAGE_NAME: task-manager-api
 
-name: Task Manager API Image
-permissions: 
-  contents: read
-  packages: write
-
-run-name: ${{ github.actor }} is building the API image
 on:
   push:
     branches: [main]
     paths:
-      - 'services/api/**' # The whole pipeline only runs if this folder changes
-  # Also allows manual triggering for demos
+      - 'services/api/**'
   workflow_dispatch:
 
 jobs:
