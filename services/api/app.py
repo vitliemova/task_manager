@@ -5,6 +5,7 @@ import uuid
 import os
 
 print("Pipeline test: code updated")
+print("Desi is here to help you with your DevOps journey! 🚀")
 
 app = Flask(__name__)
 
