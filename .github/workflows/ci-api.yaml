@@ -120,30 +120,33 @@ jobs:
   # ---------------------------------------------------------
   # 4) RELEASE NOTES + CHANGELOG ONLY ON RELEASE
   # ---------------------------------------------------------
-  changelog:
-    if: github.event_name == 'release'
-    needs: build-images
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+changelog:
+  if: github.event_name == 'release'
+  needs: build-images
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Install git-cliff
-        run: |
-          curl -s https://raw.githubusercontent.com/orhun/git-cliff/main/install.sh | bash
+    - name: Install Rust + Cargo
+      uses: dtolnay/rust-toolchain@stable
 
-      - name: Generate CHANGELOG
-        run: git-cliff -c cliff.toml -o CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install git-cliff
+      run: cargo install git-cliff
 
-      - name: Commit updated CHANGELOG
-        run: |
-          git config user.name "vitliemova"
-          git config user.email "vitliemova@gmail.com"
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog [skip ci]" || echo "No changes"
-          git push
+    - name: Generate CHANGELOG
+      run: git-cliff -c cliff.toml -o CHANGELOG.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit updated CHANGELOG
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add CHANGELOG.md
+        git commit -m "docs: update changelog [skip ci]" || echo "No changes"
+        git push
+
 
