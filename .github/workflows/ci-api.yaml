@@ -3,7 +3,8 @@ env:
   DOCKER_IMAGE_NAME: task-manager-api
 
 name: Task Manager API Image
-permissions: contents: read
+permissions: 
+contents: read
 packages: write
 
 run-name: ${{ github.actor }} is building the API image
